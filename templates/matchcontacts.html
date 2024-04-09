@@ -1,0 +1,38 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="../static/main.css" rel="stylesheet">
+    <title>Match Contacts</title>
+</head>
+<body>
+
+    <div class="container">
+        <img src="../static/PendasLogo.png" alt="">
+
+        <h5 style="margin-left: 20px;">STEP 2</h5>
+        
+        <div class="title">
+            <p>Upload the School Accounts into Salesforce. <br>Enter the path of the success folder</p>
+        </div>
+    
+
+        <form action="http://127.0.0.1:8082/matchcontacts" method="POST">
+            
+        
+            <div class="container">
+                <div class="input-group">
+                    <input type="text" id="usernam" placeholder=" " name="file">
+                    <label for="usernam">Folder Path</label>
+                </div>
+                <button type="submit" class="btn">Submit</button>
+            </div>
+        </form>
+
+        <div class="container">
+            <div class="input-group">
+            <a href="http://127.0.0.1:8082/" style="text-decoration: none;"><button class="btn">Back</button></a>
+          </div>
+    </div>
+</body>
+</html>

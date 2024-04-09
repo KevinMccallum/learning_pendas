@@ -1,0 +1,146 @@
+/* Reset default browser styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+  }
+
+  img{
+    margin-left: 20;
+    width: inherit;
+    margin-bottom: 70px;
+  }
+  
+  p{
+    text-align: center;
+    margin-left: 20px;
+    font-size: 12px;
+
+  }
+
+  .container {
+    width: 300px;
+    margin: 20px;
+  }
+  
+  .input-group {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  
+  .input-group input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    transition: border-color 0.3s ease;
+  }
+  
+  .input-group input:focus {
+    border-color: #5c8df6;
+  }
+  
+  .input-group label {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    background-color: #fff;
+    padding: 0 5px;
+    font-size: 14px;
+    color: #999;
+    transition: top 0.3s, font-size 0.3s, color 0.3s;
+  }
+  
+  .input-group input:focus + label,
+  .input-group input:not(:placeholder-shown) + label {
+    top: 0;
+    font-size: 12px;
+    color: #5c8df6;
+  }
+  
+  .input-group span {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    color: #999;
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+  
+  .input-group span:hover {
+    color: #5c8df6;
+  }
+  
+  /* Custom checkbox */
+  .input-group .checkmark {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  
+  .input-group .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #5c8df6;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  
+  .input-group input[type="checkbox"]:checked + .checkmark:after {
+    display: block;
+  }
+  
+  /* Button */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    background-color: #5c8df6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+  }
+  
+  .btn:hover {
+    background-color: #4a7bd5;
+  }
+
+  .container-title {
+    width: 3000px;
+    margin: 20px;
+  }
+
+  .title{
+    position: relative;
+    margin: 20px;
+    font-size: small;
+
+  }
+  
