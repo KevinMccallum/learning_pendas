@@ -42,7 +42,7 @@ def index():
 def success_table():
     # response = request.form['file']
     salesforce_session_connection = SalesforceConnection(username, password, security_token)
-    response = salesforce_session_connection.connect().query_all("SELECT Id, Name, NCES_District_ID__c, Type FROM Account WHERE BillingState = 'CA' AND District_or_School_Record__c = 'District' ")
+    response = salesforce_session_connection.connect().query_all("SELECT Id, Name, Email, AccountId FROM Contact WHERE (MailingState = 'FL' OR Account.BillingState = 'FL') AND AccountId = null")
     df = pd.DataFrame(response['records'])#.drop(labels='attributes', axis=1)
     # contact_df = df['Contact'].apply(lambda x:x['Contact'])
     # contact_df = pd.DataFrame(df['Contact'])
@@ -50,8 +50,23 @@ def success_table():
 
     # records = [dict(Id=rec['Account']['Id'], Type=rec['Account']['Type'], Name=rec['Account']['Name'])
     #        for rec in response['records']]
+
+
+    
+
+
     
     account_df = pd.DataFrame(df).drop(labels='attributes', axis=1)
+    # df.rename(columns={'Email': 'Email Address'}, inplace=True)
+    # df["Source"] = 'Salesforce'
+    # df['Sort'] = 5
+    # account_records = [dict(ContactId=['Id'],Name=['Name'],Email=['Email'],AccountId=rec['Account']['Id'], Type=rec['Account']['Type'], AccountName=rec['Account']['Name'], DistrictId=rec['Account']['NCES_District_ID__c'], SchoolId=rec['Account']['NCES_School_ID__c'])
+    #        for rec in response['records']]
+    # account_records = pd.DataFrame(account_records)
+
+
+
+
     # contact_list_df = pd.DataFrame()
 
     # for i in range(0,len(contact_df)): 
@@ -102,7 +117,7 @@ def dedupek12():
             school.file = file
             school_df.append(school.readAndPeparePublicSchoolData(dc))
 
-        elif 'personnel' in file and file.endswith('.xlsx'):
+        elif 'school_personnel' in file and file.endswith('.xlsx'):
             school.file = file        
             school_df.append(school.readAndPeparePublicSchoolData(dc))
 
@@ -176,17 +191,19 @@ def dedupek12():
             
 
     district_accounts_by_state = district.queryDistrictAccountsByState(state)
-    district_accounts_by_state.to_csv(f'{state} - District Salesforce Accounts{today}.csv', index=False, float_format='%.0f')
 
-    merged_district_accounts_with_salesforce_data = deduped_main_district_df.merge(district_accounts_by_state, on =['District Id'],how='outer', indicator=True)
-    district_accounts_not_in_salesforce = merged_district_accounts_with_salesforce_data[merged_district_accounts_with_salesforce_data['_merge'] == 'left_only']
-    district_both = merged_district_accounts_with_salesforce_data[merged_district_accounts_with_salesforce_data['_merge'] == 'both']
-    district_right = merged_district_accounts_with_salesforce_data[merged_district_accounts_with_salesforce_data['_merge'] == 'righ_only']
-    district_accounts_not_in_salesforce.drop(labels={'Id', 'Account Name','Type','_merge'}, axis=1, inplace=True)
+    if not district_accounts_by_state.empty:
+        district_accounts_by_state.to_csv(f'{state} - District Salesforce Accounts{today}.csv', index=False, float_format='%.0f')
 
-    district_accounts_not_in_salesforce.to_csv(f'{state} - District Accounts To Import{today}.csv', index=False, float_format='%.0f')
-    district_both.to_csv(f'{state} - district_both{today}.csv', index=False, float_format='%.0f')
-    district_right.to_csv(f'{state} - district_right{today}.csv', index=False, float_format='%.0f')
+        merged_district_accounts_with_salesforce_data = deduped_main_district_df.merge(district_accounts_by_state, on =['District Id'],how='outer', indicator=True)
+        district_accounts_not_in_salesforce = merged_district_accounts_with_salesforce_data[merged_district_accounts_with_salesforce_data['_merge'] == 'left_only']
+        district_both = merged_district_accounts_with_salesforce_data[merged_district_accounts_with_salesforce_data['_merge'] == 'both']
+        district_right = merged_district_accounts_with_salesforce_data[merged_district_accounts_with_salesforce_data['_merge'] == 'right_only']
+        district_accounts_not_in_salesforce.drop(labels={'Id', 'Account Name','Type','_merge'}, axis=1, inplace=True)
+
+        district_accounts_not_in_salesforce.to_csv(f'{state} - District Accounts To Import{today}.csv', index=False, float_format='%.0f')
+        district_both.to_csv(f'{state} - district_both{today}.csv', index=False, float_format='%.0f')
+        district_right.to_csv(f'{state} - district_right{today}.csv', index=False, float_format='%.0f')
     
 
 #|----------------------------------------------------------------------------------------------------|
@@ -353,11 +370,20 @@ def dedupek12():
     #         session['contactsWithNoSalesforceAccount'] = contacts_without_existing_salesforce_account.to_json()
 
 
-    resp = make_response(district_accounts_not_in_salesforce.to_csv())
-    resp.headers["Content-Disposition"] = "attachment; filename=District Accounts to Import.csv"
-    resp.headers["Content-Type"] = "text/csv"
-    
-    return resp
+    if not district_accounts_by_state.empty:
+
+        resp = make_response(district_accounts_not_in_salesforce.to_csv())
+        resp.headers["Content-Disposition"] = "attachment; filename=District Accounts to Import.csv"
+        resp.headers["Content-Type"] = "text/csv"
+        
+        return resp
+    else:
+        resp = make_response(deduped_main_district_df.to_csv())
+        resp.headers["Content-Disposition"] = "attachment; filename=District Accounts to Import.csv"
+        resp.headers["Content-Type"] = "text/csv"
+        deduped_main_district_df.to_csv(f'{state} - District Accounts To Import{today}.csv', index=False, float_format='%.0f')
+        
+        return resp
 
 @app.route("/importdata")
 def importData():
@@ -396,39 +422,45 @@ def createpublicschools():
 
 
     school_accounts_by_state = district.querySchoolAccountsByState(state)
-    school_accounts_by_state.to_csv(f'Public Schools SF{today}.csv', index=False, float_format='%.0f')
-    school_accounts_by_state.drop(labels={'Account Name'}, axis=1, inplace=True)
-    merged_school_accounts_with_salesforce_data = schooldata.merge(school_accounts_by_state, on =['Nces School Id'],how='outer', indicator=True)
-    school_accounts_not_in_salesforce = merged_school_accounts_with_salesforce_data[merged_school_accounts_with_salesforce_data['_merge'] == 'left_only']
-    school_accounts_not_in_salesforce.drop(labels={'_merge','Id','Type'}, axis=1, inplace=True)
-    school_accounts_not_in_salesforce.reset_index(inplace=True)
+    if not school_accounts_by_state.empty:
+        school_accounts_by_state.to_csv(f'Public Schools SF{today}.csv', index=False, float_format='%.0f')
+        school_accounts_by_state.drop(labels={'Account Name'}, axis=1, inplace=True)
+        merged_school_accounts_with_salesforce_data = schooldata.merge(school_accounts_by_state, on =['Nces School Id'],how='outer', indicator=True)
+        school_accounts_not_in_salesforce = merged_school_accounts_with_salesforce_data[merged_school_accounts_with_salesforce_data['_merge'] == 'left_only']
+        school_accounts_not_in_salesforce.drop(labels={'_merge','Id','Type'}, axis=1, inplace=True)
+        school_accounts_not_in_salesforce.reset_index(inplace=True)
     
 
-    dc = district.queryDistrictAccountsByState(state)
-    dc.drop(labels={'Account Name', 'Type'}, axis=1, inplace=True)
+        dc = district.queryDistrictAccountsByState(state)
+        if not dc.empty:
+            dc.drop(labels={'Account Name', 'Type'}, axis=1, inplace=True)
 
-    school_accounts_with_salesforce_account_merge = school_accounts_not_in_salesforce.merge(dc, on =['District Id'],how='outer', indicator=True)
+            school_accounts_with_salesforce_account_merge = school_accounts_not_in_salesforce.merge(dc, on =['District Id'],how='outer', indicator=True)
 
-    school_accounts_with_salesforce_account = school_accounts_with_salesforce_account_merge[school_accounts_with_salesforce_account_merge['_merge'] == 'left_only']
+            school_accounts_with_salesforce_account = school_accounts_with_salesforce_account_merge[school_accounts_with_salesforce_account_merge['_merge'] == 'left_only']
 
-    if not school_accounts_with_salesforce_account.empty:
-        school_accounts_with_salesforce_account = district.buildSchoolToDistrictSchema(school_accounts_with_salesforce_account)
-        school_accounts_with_salesforce_account = district.dedupeDistrictData(school_accounts_with_salesforce_account)
-        school_accounts_with_salesforce_account.to_csv(f'School Accounts Without a District Id Account.csv', index=False, float_format='%.0f')
-        return render_template("reuploaddistrict.html")
+            if not school_accounts_with_salesforce_account.empty:
+                school_accounts_with_salesforce_account = district.buildSchoolToDistrictSchema(school_accounts_with_salesforce_account)
+                school_accounts_with_salesforce_account = district.dedupeDistrictData(school_accounts_with_salesforce_account)
+                school_accounts_with_salesforce_account.to_csv(f'School Accounts Without a District Id Account.csv', index=False, float_format='%.0f')
+                return render_template("reuploaddistrict.html")
 
-    school_accounts_with_salesforce_account = school_accounts_with_salesforce_account_merge[school_accounts_with_salesforce_account_merge['_merge'] == 'both']
-    school_accounts_with_salesforce_account.rename(columns={'Id':'Parent Account ID'},inplace=True)
-    # vlookup District Contacts with District Account with Salesforce Id's
+            school_accounts_with_salesforce_account = school_accounts_with_salesforce_account_merge[school_accounts_with_salesforce_account_merge['_merge'] == 'both']
+            school_accounts_with_salesforce_account.rename(columns={'Id':'Parent Account ID'},inplace=True)
+        # vlookup District Contacts with District Account with Salesforce Id's
 
 
-    # districtcontactdata = dc.merge(districtcontactdata, on =['District Id'],how='right')
-    school_accounts_with_salesforce_account.drop(labels={'_merge', 'Temporary Name', 'index', 'level_0'}, axis=1, inplace=True)
-    school_accounts_with_salesforce_account.to_csv(f'Public Schools to Import{today}.csv', index=False, float_format='%.0f')
-    # districtcontactdata.to_csv(f'district_contacts_df{today}.csv', index=False, float_format='%.0f')
-    session['schooldata'] = []
+        # districtcontactdata = dc.merge(districtcontactdata, on =['District Id'],how='right')
+            school_accounts_with_salesforce_account.drop(labels={'_merge', 'Temporary Name', 'index', 'level_0'}, axis=1, inplace=True)
+            school_accounts_with_salesforce_account.to_csv(f'Public Schools to Import{today}.csv', index=False, float_format='%.0f')
+            session['schooldata'] = []
+            return render_template("matchcontacts.html")
+        # districtcontactdata.to_csv(f'district_contacts_df{today}.csv', index=False, float_format='%.0f')
+    else:
+        schooldata.to_csv(f'Public Schools to Import{today}.csv', index=False, float_format='%.0f')
+        session['schooldata'] = []
     # session['districtcontactdata'] = districtcontactdata.to_json()
-    return render_template("matchcontacts.html")
+        return render_template("matchcontacts.html")
 
 @app.route("/matchcontacts", methods=["GET","POST"])
 def matchcontacts():
@@ -439,9 +471,7 @@ def matchcontacts():
 
     all_contacts = session.get('allcontacts')
     contacts_to_import_df = pd.read_json(all_contacts, dtype=False)
-
-    salesforce_all_contacts_by_state = district.queryAllContactsByState(state)
-    salesforce_all_contacts_by_state.to_csv(f'salesforce_all_contacts_by_state{today}.csv', index=False, float_format='%.0f')
+    
 
 
     # Query and Rename Email column to Email Address in order to dedupe
@@ -460,6 +490,7 @@ def matchcontacts():
         contacts_to_import_df = district.removeAllDuplicatesBetweenK12andSalesforce(contacts_to_import_df)
     
     salesforce_all_contacts_by_state = district.queryAllContactsByState(state)
+    # salesforce_all_contacts_by_state.to_csv(f'salesforce_all_contacts_by_state{today}.csv', index=False, float_format='%.0f')
 
     if not salesforce_all_contacts_by_state.empty:
 
@@ -546,6 +577,47 @@ def matchcontacts():
 
 
             contacts_without_existing_salesforce_account = district_contact_account_merge[district_contact_account_merge['_merge'] == 'left_only']
+            if not contacts_without_existing_salesforce_account.empty:
+                contacts_without_existing_salesforce_account.to_csv(f'{state} - Contacts with No Salesforce Account{today}.csv', index=False, float_format='%.0f')
+    else:
+        district_accounts_by_state = district.queryDistrictAccountsByState(state)
+        school_accounts_by_state = district.querySchoolAccountsByState(state)
+            
+
+        school_contact_account_merge = contacts_to_import_df.merge(school_accounts_by_state, on =['Nces School Id'],how='outer', indicator=True)
+            # school_contact_account_merge.to_csv(f'school_contact_account_merge{today}.csv', index=False, float_format='%.0f')
+
+        school_contacts_with_existing_salesforce_account = school_contact_account_merge[school_contact_account_merge['_merge'] == 'both']
+        school_contacts_with_existing_salesforce_account.rename(columns={'Id':'AccountId'},inplace=True)
+        school_contacts_with_existing_salesforce_account.drop(labels='_merge', axis=1,inplace=True)
+
+        # school_contacts_with_existing_salesforce_account.to_csv(f'school_contacts_with_existing_salesforce_account{today}.csv', index=False, float_format='%.0f')
+
+        school_contacts_without_salesforce_account = school_contact_account_merge[school_contact_account_merge['_merge'] == 'left_only']
+        school_contacts_without_salesforce_account.drop(labels={'_merge','Id','Account Name','Type'}, axis=1,inplace=True)
+
+
+
+        district_contact_account_merge = school_contacts_without_salesforce_account.merge(district_accounts_by_state, on =['District Id'],how='outer', indicator=True)
+        # district_contact_account_merge.to_csv(f'district_contact_account_merge{today}.csv', index=False, float_format='%.0f')
+
+        district_contacts_with_existing_salesforce_account = district_contact_account_merge[district_contact_account_merge['_merge'] == 'both']
+        district_contacts_with_existing_salesforce_account.rename(columns={'Id':'AccountId'},inplace=True)
+        district_contacts_with_existing_salesforce_account.drop(labels='_merge', axis=1,inplace=True)
+
+        # district_contacts_with_existing_salesforce_account.to_csv(f'district_contacts_with_existing_salesforce_account{today}.csv', index=False, float_format='%.0f')
+
+        
+        
+
+        contacts_with_existing_salesforce_account = pd.concat([school_contacts_with_existing_salesforce_account, district_contacts_with_existing_salesforce_account], axis=0,ignore_index=False)    
+        contacts_with_existing_salesforce_account = district.populateContactDefaultValues(contacts_with_existing_salesforce_account)
+        contacts_with_existing_salesforce_account.to_csv(f'{state} - Contacts To Upload{today}.csv', index=False, float_format='%.0f')
+
+
+
+        contacts_without_existing_salesforce_account = district_contact_account_merge[district_contact_account_merge['_merge'] == 'left_only']
+        if not contacts_without_existing_salesforce_account.empty:
             contacts_without_existing_salesforce_account.to_csv(f'{state} - Contacts with No Salesforce Account{today}.csv', index=False, float_format='%.0f')
 
     

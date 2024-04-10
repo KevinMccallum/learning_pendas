@@ -179,7 +179,7 @@ class DataHelper:
         if 'public' in self.file:
             dc['Sort'] = 3
             dc['Source'] = 'Public File'
-        if 'personnel' in self.file:
+        if 'school_personnel' in self.file:
             dc['Sort'] = 4
             dc['Source'] = 'Personnel File'
 
@@ -427,7 +427,7 @@ class DataHelper:
     
     def queryAllContactsByState(self,state):
         session = SalesforceConnection(username, password, security_token)
-        response = session.connect().query_all("SELECT Id, Name, Email, AccountId, Account.Id,Account.Type, Account.Name, Account.NCES_District_ID__c, Account.NCES_School_ID__c FROM Contact WHERE (Mark_for_Delete__c = false OR HasOptedOutOfEmail = false) AND (MailingState = " + "'" + state + "' OR Account.BillingState = " + "'" + state + "')")
+        response = session.connect().query_all("SELECT Id, Name, Email, AccountId, Account.Id,Account.Type, Account.Name, Account.NCES_District_ID__c, Account.NCES_School_ID__c FROM Contact WHERE (MailingState = " + "'" + state + "' OR Account.BillingState = " + "'" + state + "')")
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df.rename(columns={'Email': 'Email Address'}, inplace=True)
