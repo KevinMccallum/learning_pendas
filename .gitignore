@@ -4,3 +4,4 @@ __pycache__/
 *.csv
 flask_session/
 /credentials.py
+Uploads/
