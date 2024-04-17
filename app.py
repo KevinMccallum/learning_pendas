@@ -542,7 +542,8 @@ def matchcontacts():
 
     district_accounts_by_state = district.queryDistrictAccountsByState(state)
     school_accounts_by_state = district.querySchoolAccountsByState(state)
-    
+
+    contacts_to_import_df.drop(labels={'_merge','Id','Type','Account Name'}, axis=1, inplace=True)    
 
     school_contact_account_merge = contacts_to_import_df.merge(school_accounts_by_state, on =['Nces School Id'],how='outer', indicator=True)
     # school_contact_account_merge.to_csv(f'school_contact_account_merge{today}.csv', index=False, float_format='%.0f')
