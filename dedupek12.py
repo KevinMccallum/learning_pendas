@@ -141,6 +141,12 @@ class DataHelper:
         deduped.drop_duplicates(subset="District Id", keep='first', inplace=True)
         return deduped
     
+    def setDistrictNamewithState(self,dc):
+        deduped = pd.DataFrame(dc)
+        deduped["Full District Name"] = deduped['Full District Name'].astype(str).str.title() + ' (' + deduped['Location State'].astype(str).str.upper() + ')'
+        return deduped
+
+    
 
     
 

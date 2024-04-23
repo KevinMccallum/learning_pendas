@@ -105,10 +105,11 @@ def dedupek12():
 
     for file in os.listdir(response):
         dc = pd.read_excel(os.path.join(response,file),dtype={'Nces School Id': str, 'District Id': str, 'Grades Offered - Lowest': str})
+        dc["Data Source Import Date"] = response.split(".xlsx")[0][-10:]
+        dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)
         if 'superintendents' in file and file.endswith('.xlsx'):
             district.file = file
             district_df.append(district.readAndPrepareDistrictData(dc))
-
         elif 'district' in file and file.endswith('.xlsx'):   
             district.file = file
             district_df.append(district.readAndPrepareDistrictData(dc))
@@ -151,6 +152,9 @@ def dedupek12():
 
     #Dedupe District accounts by District Id and School accounts by NCES School Id
     deduped_main_district_df = district.dedupeDistrictData(main_district_df)
+    deduped_main_district_df = district.setDistrictNamewithState(deduped_main_district_df)
+
+
 
     #Check if there is Non-numerical Nces School Id
     non_numerical_nces_school_id = school.returnNonNumericalNcesSchoolId(main_school_df)
