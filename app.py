@@ -105,6 +105,7 @@ def dedupek12():
 
     for file in os.listdir(response):
         dc = pd.read_excel(os.path.join(response,file),dtype={'Nces School Id': str, 'District Id': str, 'Grades Offered - Lowest': str})
+        print(response)
         dc["Data Source Import Date"] = response.split(".xlsx")[0][-10:]
         dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)
         if 'superintendents' in file and file.endswith('.xlsx'):
@@ -185,8 +186,8 @@ def dedupek12():
     
     deduped_main_school_df.reset_index(inplace=True)
     
-    deduped_main_school_df.to_csv(f'{state} - school_df{today}.csv', index=False, float_format='%.0f')
-    deduped_main_district_df.to_csv(f'{state} - district_df{today}.csv', index=False, float_format='%.0f')
+    deduped_main_school_df.to_csv(f'{state} - school_df{today}.csv', index=False, float_format='%.0f', date_format='%d-%m-%Y')
+    deduped_main_district_df.to_csv(f'{state} - district_df{today}.csv', index=False, float_format='%.0f', date_format='%d-%m-%Y')
 
 
 # #|----------------------------------------------------------------------------------------------------|

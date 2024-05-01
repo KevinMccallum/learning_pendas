@@ -31,7 +31,7 @@ class DataHelper:
         dc["Grades Offered - Highest"] = np.where(dc['Grades Offered - Highest'].astype(str).str.endswith('.0'),dc["Grades Offered - Highest"].astype(str).str.rstrip('.0'),dc["Grades Offered - Highest"])
         pd.to_numeric(dc["Grades Offered - Highest"], errors='coerce')
         dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"].astype(str) == '13','12',dc["Grades Offered - Highest"])
-        dc["Data Source Import Date"] = self.file.split(".xlsx")[0][-10:]
+        # dc["Data Source Import Date"] = self.file.split(".xlsx")[0][-10:]
         # dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)
         return dc
 
@@ -202,7 +202,7 @@ class DataHelper:
         dc["Grades Offered - Highest"] = np.where(dc['Grades Offered - Highest'].astype(str).str.endswith('.0'),dc["Grades Offered - Highest"].astype(str).str.rstrip('.0'),dc["Grades Offered - Highest"])
         pd.to_numeric(dc["Grades Offered - Highest"], errors='coerce')
         dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"].astype(str) == '13','12',dc["Grades Offered - Highest"])
-        dc["Data Source Import Date"] = self.file.split(".xlsx")[0][-10:]
+        # dc["Data Source Import Date"] = self.file.split(".xlsx")[0][-10:]
 
 
         # dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)
