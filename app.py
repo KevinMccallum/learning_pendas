@@ -107,11 +107,12 @@ def dedupek12():
         dc = pd.read_excel(os.path.join(response,file),dtype={'Nces School Id': str, 'District Id': str, 'Grades Offered - Lowest': str})
         print(response)
         dc["Data Source Import Date"] = response.split(".xlsx")[0][-10:]
-        dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)
         if 'superintendents' in file and file.endswith('.xlsx'):
+            dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)
             district.file = file
             district_df.append(district.readAndPrepareDistrictData(dc))
-        elif 'district' in file and file.endswith('.xlsx'):   
+        elif 'district' in file and file.endswith('.xlsx'): 
+            dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)  
             district.file = file
             district_df.append(district.readAndPrepareDistrictData(dc))
 
@@ -400,6 +401,7 @@ def createpublicschools():
 
     schooldata = session.get('schooldata')
     schooldata = pd.read_json(schooldata, dtype=False)
+    schooldata["Data Source Import Date"] = pd.to_datetime(schooldata["Data Source Import Date"],dayfirst=True)
     schooldata.to_csv(f'SCHOOL DATA{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
     state = session.get('state', None)
@@ -476,6 +478,7 @@ def matchcontacts():
 
     all_contacts = session.get('allcontacts')
     contacts_to_import_df = pd.read_json(all_contacts, dtype=False)
+    contacts_to_import_df["Data Source Import Date"] = pd.to_datetime(contacts_to_import_df["Data Source Import Date"],dayfirst=True)
     
 
 
