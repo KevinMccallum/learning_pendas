@@ -5,3 +5,4 @@ __pycache__/
 flask_session/
 /credentials.py
 Uploads/
+credentials.py
