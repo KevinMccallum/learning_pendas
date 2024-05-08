@@ -127,7 +127,7 @@ def dedupek12():
   
     district_df = pd.concat(district_df, axis=0,ignore_index=False)
     school_df = pd.concat(school_df,axis=0,ignore_index=False)
-    
+
     
 
 
@@ -216,8 +216,10 @@ def dedupek12():
 #|---------------------------------------------  CONTACTS --------------------------------------------|
 #|----------------------------------------------------------------------------------------------------|
 
+    district_df["Data Source Import Date"] = district_df["Data Source Import Date"].astype('int64') 
     main_contact_district_df = district.buildDistrictContactSchema(district_df)
     main_contact_school_df = school.buildSchoolContactSchema(school_df)
+
 
     deduped_main_contact_district_df = district.dedupeContactData(main_contact_district_df)
     deduped_main_contact_school_df = school.dedupeContactData(main_contact_school_df)
@@ -402,7 +404,7 @@ def createpublicschools():
     schooldata = session.get('schooldata')
     schooldata = pd.read_json(schooldata, dtype=False)
     schooldata["Data Source Import Date"] = pd.to_datetime(schooldata["Data Source Import Date"],dayfirst=True)
-    schooldata.to_csv(f'SCHOOL DATA{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+    # schooldata.to_csv(f'SCHOOL DATA{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
     state = session.get('state', None)
 
@@ -480,6 +482,7 @@ def matchcontacts():
     contacts_to_import_df = pd.read_json(all_contacts, dtype=False)
     contacts_to_import_df["Data Source Import Date"] = pd.to_datetime(contacts_to_import_df["Data Source Import Date"],dayfirst=True)
     
+    
 
 
     # Query and Rename Email column to Email Address in order to dedupe
@@ -542,6 +545,7 @@ def matchcontacts():
             # contacts_to_import_df = pd.concat([contacts_to_import_df, contacts_in_history_report], axis=0,ignore_index=False)
             contacts_to_import_df.rename(columns={'Sort_x': 'Sort', 'Source_x': 'Source'}, inplace=True)
             contacts_to_import_df = district.buildSchoolContactSchema(contacts_to_import_df)
+            
 
             # if not contacts_in_history_report_with_different_nces_id.empty:
 
@@ -551,7 +555,7 @@ def matchcontacts():
     district_accounts_by_state = district.queryDistrictAccountsByState(state)
     school_accounts_by_state = district.querySchoolAccountsByState(state)
 
-    contacts_to_import_df.drop(labels={'_merge','Id','Type','Account Name'}, axis=1, inplace=True)    
+    contacts_to_import_df.drop(labels={'_merge','Id','Type','Account Name','AccountId','DistrictId','SchoolId','Name','Source_y','Sort_y'}, axis=1, inplace=True)  
 
     school_contact_account_merge = contacts_to_import_df.merge(school_accounts_by_state, on =['Nces School Id'],how='outer', indicator=True)
     # school_contact_account_merge.to_csv(f'school_contact_account_merge{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
