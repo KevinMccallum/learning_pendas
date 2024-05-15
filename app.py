@@ -501,7 +501,7 @@ def matchcontacts():
         contacts_to_import_df = district.removeAllDuplicatesBetweenK12andSalesforce(contacts_to_import_df)
     
     salesforce_all_contacts_by_state = district.queryAllContactsByState(state)
-    # salesforce_all_contacts_by_state.to_csv(f'salesforce_all_contacts_by_state{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+    salesforce_all_contacts_by_state.to_csv(f'salesforce_all_contacts_by_state{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
     if not salesforce_all_contacts_by_state.empty:
 
@@ -510,46 +510,52 @@ def matchcontacts():
         #!!
         contacts_to_import_df = k12data_check_with_df_data[k12data_check_with_df_data['_merge'] == 'left_only']
         contacts_for_contact_history = k12data_check_with_df_data[k12data_check_with_df_data['_merge'] == 'both']
+        contacts_for_contact_history.to_csv(f'contacts_FOR_contact_history.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         
-        contacts_for_contact_history = contacts_for_contact_history[(contacts_for_contact_history['Nces School Id'].isnull() & contacts_for_contact_history['District Id'].ne(contacts_for_contact_history['DistrictId'])) | (contacts_for_contact_history['District Id'].isnull() & contacts_for_contact_history['Nces School Id'].ne(contacts_for_contact_history['SchoolId']))]
+        contacts_for_contact_history = contacts_for_contact_history[(contacts_for_contact_history['Nces School Id'].isnull() & contacts_for_contact_history['District Id'].ne(contacts_for_contact_history['DistrictId']) & ~contacts_for_contact_history['DistrictId'].isnull()) | (contacts_for_contact_history['District Id'].isnull() & contacts_for_contact_history['Nces School Id'].ne(contacts_for_contact_history['SchoolId']) & ~contacts_for_contact_history['SchoolId'].isnull())]
+        contacts_for_contact_history.to_csv(f'contacts_FOR_contact_historyV2-1.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         contacts_for_contact_history.drop(labels='_merge', axis=1, inplace=True)
+
+        
 
         if not contacts_for_contact_history.empty:
 
             contacts_for_contact_history.rename(columns={'Id': 'ContactId'}, inplace=True)
 
             contact_history_report = district.queryContactHistory()
-            contact_history_contacts = district.returnContactsFromContactHistoryQuery(contact_history_report)
-            contact_history_report = contact_history_report.merge(contact_history_contacts, on =['ContactId'],how='right')
-            contact_history_report.drop(labels='Contact', axis=1,inplace=True)
+            if not contact_history_report.empty:
+                contact_history_report.to_csv(f'contact_history_report.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+                contact_history_contacts = district.returnContactsFromContactHistoryQuery(contact_history_report)
+                contact_history_report = contact_history_report.merge(contact_history_contacts, on =['ContactId'],how='right')
+                contact_history_report.drop(labels='Contact', axis=1,inplace=True)
 
-            contact_history_report.sort_values('CreatedDate', ascending=False,inplace=True)
-            contact_history_report.drop_duplicates(subset="ContactId",keep='first', inplace=True)
-            contact_history_report.rename(columns={'Email Address': 'Salesforce Email Address'}, inplace=True)
-            contact_history_report.to_csv(f'Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+                contact_history_report.sort_values('CreatedDate', ascending=False,inplace=True)
+                contact_history_report.drop_duplicates(subset="ContactId",keep='first', inplace=True)
+                contact_history_report.rename(columns={'Email Address': 'Salesforce Email Address'}, inplace=True)
+                contact_history_report.to_csv(f'Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
-            contacts_in_history_report = contacts_for_contact_history.merge(contact_history_report, on =['ContactId'],how='outer', indicator=True)
+                contacts_in_history_report = contacts_for_contact_history.merge(contact_history_report, on =['ContactId'],how='outer', indicator=True)
 
-            contacts_in_history_report_with_different_nces_id = contacts_in_history_report[contacts_in_history_report['_merge'] == 'left_only']
+                contacts_in_history_report_with_different_nces_id = contacts_in_history_report[contacts_in_history_report['_merge'] == 'left_only']
 
-            if not contacts_in_history_report_with_different_nces_id.empty:
-                contacts_in_history_report_with_different_nces_id.rename(columns={'Email Address_x': 'Email Address', 'Sort_x': 'Sort', 'Source_x':'Source'}, inplace=True)
-                contacts_in_history_report_with_different_nces_id.drop(labels={'Sort','Source'}, axis=1,inplace=True)
-                contacts_in_history_report_with_different_nces_id.to_csv(f'{state} - Contacts with Different NCES ID and Not In Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+                if not contacts_in_history_report_with_different_nces_id.empty:
+                    contacts_in_history_report_with_different_nces_id.rename(columns={'Email Address_x': 'Email Address', 'Sort_x': 'Sort', 'Source_x':'Source'}, inplace=True)
+                    contacts_in_history_report_with_different_nces_id.drop(labels={'Sort','Source'}, axis=1,inplace=True)
+                    contacts_in_history_report_with_different_nces_id.to_csv(f'{state} - Contacts with Different NCES ID and Not In Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
-            contacts_in_history_report = contacts_in_history_report[contacts_in_history_report['_merge'] == 'both']
+                contacts_in_history_report = contacts_in_history_report[contacts_in_history_report['_merge'] == 'both']
 
-            contacts_in_history_report = contacts_in_history_report[((contacts_in_history_report['NewValue'] == '000000000') & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['OldValue']))) | (contacts_in_history_report['District Id'].ne(contacts_in_history_report['NewValue'])) | ((contacts_in_history_report['NewValue'] == '000000000') & (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['OldValue']))) | (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['NewValue']))]
-            
+                contacts_in_history_report = contacts_in_history_report[((contacts_in_history_report['NewValue'] == '000000000') & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['OldValue']))) | (contacts_in_history_report['District Id'].ne(contacts_in_history_report['NewValue'])) | ((contacts_in_history_report['NewValue'] == '000000000') & (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['OldValue']))) | (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['NewValue']))]
+                
 
-            # contacts_to_import_df = pd.concat([contacts_to_import_df, contacts_in_history_report], axis=0,ignore_index=False)
-            contacts_to_import_df.rename(columns={'Sort_x': 'Sort', 'Source_x': 'Source'}, inplace=True)
-            contacts_to_import_df = district.buildSchoolContactSchema(contacts_to_import_df)
-            
+                # contacts_to_import_df = pd.concat([contacts_to_import_df, contacts_in_history_report], axis=0,ignore_index=False)
+                contacts_to_import_df.rename(columns={'Sort_x': 'Sort', 'Source_x': 'Source'}, inplace=True)
+                contacts_to_import_df = district.buildSchoolContactSchema(contacts_to_import_df)
+                
 
-            # if not contacts_in_history_report_with_different_nces_id.empty:
+                # if not contacts_in_history_report_with_different_nces_id.empty:
 
-            contacts_in_history_report.to_csv(f'Contacts to Update From Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+                contacts_in_history_report.to_csv(f'Contacts to Update From Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             
 
     district_accounts_by_state = district.queryDistrictAccountsByState(state)
