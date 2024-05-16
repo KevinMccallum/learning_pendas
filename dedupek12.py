@@ -25,9 +25,9 @@ class DataHelper:
             dc['Sort'] = 2
             dc['Source'] = 'District File'
 
-        dc["Grades Offered - Lowest"] = np.where(dc['Grades Offered - Lowest'] == 'Kg', "K",(np.where(dc['Grades Offered - Lowest'] == 'KG',"K",np.where(dc['Grades Offered - Lowest'].str.startswith('0'), dc['Grades Offered - Lowest'].str.lstrip('0'),dc["Grades Offered - Lowest"]))))            
+        dc["Grades Offered - Lowest"] = np.where(dc['Grades Offered - Lowest'] == 'Kg', "K",(np.where(dc['Grades Offered - Lowest'] == 'KG',"K",np.where(dc['Grades Offered - Lowest'].str.startswith('0'), dc['Grades Offered - Lowest'].str.lstrip('0'),np.where(dc['Grades Offered - Lowest'] == "AE", "Adult Education",dc["Grades Offered - Lowest"])))))            
         dc["Grades Offered - Highest"].fillna(0)
-        dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"] == 'Kg', "K",(np.where(dc["Grades Offered - Highest"] == 'KG',"K",np.where((dc["Grades Offered - Highest"].isnull()) | dc["Grades Offered - Highest"].isna(),"",np.where(dc["Grades Offered - Highest"].astype(str).str.startswith('0'), dc["Grades Offered - Highest"].astype(str).str.lstrip('0'),dc["Grades Offered - Highest"])))))
+        dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"] == 'Kg', "K",(np.where(dc["Grades Offered - Highest"] == 'KG',"K",np.where((dc["Grades Offered - Highest"].isnull()) | dc["Grades Offered - Highest"].isna(),"",np.where(dc["Grades Offered - Highest"].astype(str).str.startswith('0'), dc["Grades Offered - Highest"].astype(str).str.lstrip('0'),np.where(dc['Grades Offered - Highest'] == "AE", "Adult Education",dc["Grades Offered - Highest"]))))))
         dc["Grades Offered - Highest"] = np.where(dc['Grades Offered - Highest'].astype(str).str.endswith('.0'),dc["Grades Offered - Highest"].astype(str).str.rstrip('.0'),dc["Grades Offered - Highest"])
         pd.to_numeric(dc["Grades Offered - Highest"], errors='coerce')
         dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"].astype(str) == '13','12',dc["Grades Offered - Highest"])
@@ -194,11 +194,11 @@ class DataHelper:
         # dc['Nces School Id'] = dc['Nces School Id'].apply('="{}"'.format)
         # dc['Nces School Id2'] = dc['Nces School Id'].str.extract('((?=").*(?="))')
         # dc['Nces School Id2'].replace('"','',regex=True,inplace=True)
-        dc["Grades Offered - Lowest"] = np.where(dc['Grades Offered - Lowest'] == 'Kg', "K",(np.where(dc['Grades Offered - Lowest'] == 'KG',"K",np.where(dc['Grades Offered - Lowest'].str.startswith('0'), dc['Grades Offered - Lowest'].str.lstrip('0'),dc["Grades Offered - Lowest"]))))
+        dc["Grades Offered - Lowest"] = np.where(dc['Grades Offered - Lowest'] == 'Kg', "K",(np.where(dc['Grades Offered - Lowest'] == 'KG',"K",np.where(dc['Grades Offered - Lowest'].str.startswith('0'), dc['Grades Offered - Lowest'].str.lstrip('0'),np.where(dc['Grades Offered - Lowest'] == "AE", "Adult Education",dc["Grades Offered - Lowest"])))))
 
         
         dc["Grades Offered - Highest"].fillna(0)
-        dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"] == 'Kg', "K",(np.where(dc["Grades Offered - Highest"] == 'KG',"K",np.where((dc["Grades Offered - Highest"].isnull()) | dc["Grades Offered - Highest"].isna(),"",np.where(dc["Grades Offered - Highest"].astype(str).str.startswith('0'), dc["Grades Offered - Highest"].astype(str).str.lstrip('0'),dc["Grades Offered - Highest"])))))
+        dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"] == 'Kg', "K",(np.where(dc["Grades Offered - Highest"] == 'KG',"K",np.where((dc["Grades Offered - Highest"].isnull()) | dc["Grades Offered - Highest"].isna(),"",np.where(dc["Grades Offered - Highest"].astype(str).str.startswith('0'), dc["Grades Offered - Highest"].astype(str).str.lstrip('0'),np.where(dc['Grades Offered - Highest'] == "AE", "Adult Education",dc["Grades Offered - Highest"]))))))
         dc["Grades Offered - Highest"] = np.where(dc['Grades Offered - Highest'].astype(str).str.endswith('.0'),dc["Grades Offered - Highest"].astype(str).str.rstrip('.0'),dc["Grades Offered - Highest"])
         pd.to_numeric(dc["Grades Offered - Highest"], errors='coerce')
         dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"].astype(str) == '13','12',dc["Grades Offered - Highest"])
