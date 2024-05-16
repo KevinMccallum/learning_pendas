@@ -501,7 +501,7 @@ def matchcontacts():
     all_contacts = session.get('allcontacts')
     contacts_to_import_df = pd.read_json(all_contacts, dtype=False)
     contacts_to_import_df["Data Source Import Date"] = pd.to_datetime(contacts_to_import_df["Data Source Import Date"],dayfirst=True)
-    contacts_to_import_df.to_csv(f'contacts_to_import_df.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+    # contacts_to_import_df.to_csv(f'contacts_to_import_df.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     
     
 
@@ -523,7 +523,7 @@ def matchcontacts():
         # contacts_for_contact_history.to_csv(f'contacts_FOR_contact_history.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     
     salesforce_all_contacts_by_state = district.queryAllContactsByState(state)
-    salesforce_all_contacts_by_state.to_csv(f'salesforce_all_contacts_by_state{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+    # salesforce_all_contacts_by_state.to_csv(f'salesforce_all_contacts_by_state{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
     if not salesforce_all_contacts_by_state.empty:
 
@@ -533,10 +533,10 @@ def matchcontacts():
         contacts_to_import_df = k12data_check_with_df_data[k12data_check_with_df_data['_merge'] == 'left_only']
         contacts_to_import_df.drop(labels='_merge', axis=1, inplace=True)
         contacts_for_contact_history = k12data_check_with_df_data[k12data_check_with_df_data['_merge'] == 'both']
-        contacts_for_contact_history.to_csv(f'contacts_FOR_contact_history.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+        # contacts_for_contact_history.to_csv(f'contacts_FOR_contact_history.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         
         contacts_for_contact_history = contacts_for_contact_history[(contacts_for_contact_history['Nces School Id'].isnull() & contacts_for_contact_history['District Id'].ne(contacts_for_contact_history['DistrictId']) & ~contacts_for_contact_history['DistrictId'].isnull()) | (contacts_for_contact_history['District Id'].isnull() & contacts_for_contact_history['Nces School Id'].ne(contacts_for_contact_history['SchoolId']) & ~contacts_for_contact_history['SchoolId'].isnull())]
-        contacts_for_contact_history.to_csv(f'contacts_FOR_contact_historyV2-1.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+        # contacts_for_contact_history.to_csv(f'contacts_FOR_contact_historyV2-1.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         contacts_for_contact_history.drop(labels='_merge', axis=1, inplace=True)
 
         
