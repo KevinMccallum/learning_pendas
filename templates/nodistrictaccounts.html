@@ -1,0 +1,38 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="../static/main.css" rel="stylesheet">
+    <title>Import Data</title>
+</head>
+<body>
+
+    <div class="container">
+        <img src="../static/PendasLogo.png" alt="">
+
+        <h5 style="margin-left: 20px;">STEP 1</h5>
+        
+        <div class="title">
+            <p><strong style="color: red;">No District or School records found </strong> <br><br>Upload the Distric Accounts into Salesforce. <br><br>Then Click Generate Public School Data <br><br> <img src="../static/pngtree-down-glyph-black-icon-png-image_691473-removebg-preview.png" alt="Downwards Arrow" style="height: 25px; margin-bottom: 0px;"></p>
+        </div>
+    
+
+        <form action="http://127.0.0.1:8082/createpublicschools" method="POST">
+            
+        
+            <div class="container">
+                <!-- <div class="input-group">
+                    <input type="text" id="usernam" placeholder=" " name="file">
+                    <label for="usernam">Folder Path</label>
+                </div> -->
+                <button type="submit" class="btn">Generate Public School Data</button>
+            </div>
+        </form>
+
+        <div class="container">
+            <div class="input-group">
+            <a href="http://127.0.0.1:8082/" style="text-decoration: none;"><button class="btn">Back</button></a>
+          </div>
+    </div>
+</body>
+</html>
