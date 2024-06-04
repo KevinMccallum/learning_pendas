@@ -500,6 +500,33 @@ class DataHelper:
         else:
             return pd.DataFrame()
         
+    def queryContactHistoryAccountId(self):
+        session = SalesforceConnection(username, password, security_token)
+        response = session.connect().query_all('SELECT ContactId, OldValue, NewValue From ContactHistory WHERE Field = \'Account\' AND DataType = \'EntityId\' AND (CreatedDate = THIS_QUARTER OR CreatedDate = LAST_QUARTER) ') #AND Contact.MailingState = ' + "'" + state + "'"
+        if response['records']:
+            df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
+            # df["Source"] = 'Salesforce'
+            # df['Sort'] = 5
+            return df
+        else:
+            return pd.DataFrame()
+        
+    def buildContactUpdate(self, dc):
+        dc = pd.DataFrame(dc)
+
+        dc_to_return = dc [['ContactId',
+                            'First Name',
+                            'Last Name',
+                            'Title',
+                            'Email Address',
+                            'OldValue_y']].copy()
+        
+        dc_to_return.rename(columns={'ContactId': 'Id', 'OldValue_y': 'AccountId'}, inplace=True)
+        
+        return dc_to_return
+
+        
+        
     def returnContactsFromContactHistoryQuery(self, dc):
         dc = pd.DataFrame(dc)
         contact_df = dc['Contact']

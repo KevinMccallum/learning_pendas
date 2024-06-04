@@ -41,9 +41,11 @@ def index():
 @app.route("/success-table", methods=['POST'])
 def success_table():
     # response = request.form['file']
+    school = DataHelper()
     salesforce_session_connection = SalesforceConnection(username, password, security_token)
-    response = salesforce_session_connection.connect().query_all("SELECT Id, Name, Email, AccountId FROM Contact WHERE (MailingState = 'FL' OR Account.BillingState = 'FL') AND AccountId = null")
-    df = pd.DataFrame(response['records'])#.drop(labels='attributes', axis=1)
+    # response = salesforce_session_connection.connect().query_all("SELECT Id, Name, Email, AccountId FROM Contact WHERE (MailingState = 'FL' OR Account.BillingState = 'FL') AND AccountId = null")
+    response = school.queryContactHistoryAccountId()
+    df = pd.DataFrame(response)#.drop(labels='attributes', axis=1)
     # contact_df = df['Contact'].apply(lambda x:x['Contact'])
     # contact_df = pd.DataFrame(df['Contact'])
     # account_df = pd.DataFrame(df['Account'])
@@ -56,7 +58,9 @@ def success_table():
 
 
     
-    account_df = pd.DataFrame(df).drop(labels='attributes', axis=1)
+    # account_df = pd.DataFrame(df).drop(labels='attributes', axis=1)
+
+
     # df.rename(columns={'Email': 'Email Address'}, inplace=True)
     # df["Source"] = 'Salesforce'
     # df['Sort'] = 5
@@ -87,7 +91,7 @@ def success_table():
     # report_results = salesforce_session.restful('analytics/reports/{}'.format(report_id))
     # print(report_results)
 
-    return render_template('success.html',  tables=[account_df.to_html(classes='data', index=True, justify='center', index_names=True)], titles=account_df.columns.values)
+    return render_template('success.html',  tables=[df.to_html(classes='data', index=True, justify='center', index_names=True)], titles=df.columns.values)
 
 @app.route("/dedupe-k12", methods=["POST"])
 def dedupek12():
@@ -570,13 +574,20 @@ def matchcontacts():
                     contacts_in_history_report_with_different_nces_id.to_csv(f'{state} - Contacts with Different NCES ID and Not In Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
                 contacts_in_history_report = contacts_in_history_report[contacts_in_history_report['_merge'] == 'both']
+                contacts_in_history_report.drop(labels='_merge', axis=1, inplace=True)
 
                 contacts_in_history_report = contacts_in_history_report[((contacts_in_history_report['NewValue'] == '000000000') & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['OldValue']))) | (contacts_in_history_report['District Id'].ne(contacts_in_history_report['NewValue'])) | ((contacts_in_history_report['NewValue'] == '000000000') & (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['OldValue']))) | (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['NewValue']))]
                 
+                contacts_with_old_account_id = district.queryContactHistoryAccountId()
+
+                contacts_in_history_report = contacts_in_history_report.merge(contacts_with_old_account_id, on =['ContactId'],how='outer', indicator=True)
+                contacts_in_history_report = contacts_in_history_report[contacts_in_history_report['_merge'] == 'both']
 
                 # contacts_to_import_df = pd.concat([contacts_to_import_df, contacts_in_history_report], axis=0,ignore_index=False)
                 contacts_to_import_df.rename(columns={'Sort_x': 'Sort', 'Source_x': 'Source'}, inplace=True)
                 contacts_to_import_df = district.buildSchoolContactSchema(contacts_to_import_df)
+
+                contacts_in_history_report = district.buildContactUpdate(contacts_in_history_report)
                 
 
                 # if not contacts_in_history_report_with_different_nces_id.empty:
