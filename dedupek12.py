@@ -491,7 +491,7 @@ class DataHelper:
     
     def queryContactHistory(self):
         session = SalesforceConnection(username, password, security_token)
-        response = session.connect().query_all('SELECT ContactId,Contact.Id, Contact.Email, Contact.Name, Contact.Account.Id, OldValue, NewValue, Id, Field,FORMAT(CreatedDate) From ContactHistory WHERE Field = \'Account_NCES_ID__c\' AND DataType != \'EntityId\' AND (CreatedDate = THIS_QUARTER OR CreatedDate = LAST_QUARTER) ') #AND Contact.MailingState = ' + "'" + state + "'"
+        response = session.connect().query_all('SELECT ContactId,Contact.Id, Contact.Email, Contact.Name, Contact.Account.Id, OldValue, NewValue, Field,FORMAT(CreatedDate) From ContactHistory WHERE Field = \'Account_NCES_ID__c\' AND DataType != \'EntityId\' AND (CreatedDate = THIS_QUARTER OR CreatedDate = LAST_QUARTER) ') #AND Contact.MailingState = ' + "'" + state + "'"
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df["Source"] = 'Salesforce'
@@ -515,13 +515,17 @@ class DataHelper:
         dc = pd.DataFrame(dc)
 
         dc_to_return = dc [['ContactId',
-                            'First Name',
-                            'Last Name',
+                            'Id',
+                            'Account Name',
+                            'Nces School Id',
+                            'District Id',
+                            'Name',
                             'Title',
                             'Email Address',
-                            'OldValue_y']].copy()
+                            'Account Type'
+                            ]].copy()
         
-        dc_to_return.rename(columns={'ContactId': 'Id', 'OldValue_y': 'AccountId'}, inplace=True)
+        dc_to_return.rename(columns={'Id':'AccountId'}, inplace=True)
         
         return dc_to_return
 

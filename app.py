@@ -551,7 +551,7 @@ def matchcontacts():
         if not contacts_for_contact_history.empty:
 
             contacts_for_contact_history.rename(columns={'Id': 'ContactId'}, inplace=True)
-
+            # contacts_for_contact_history.to_csv(f'contacts_for_contact_history.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             contact_history_report = district.queryContactHistory()
             if not contact_history_report.empty:
                 # contact_history_report.to_csv(f'contact_history_report.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
@@ -576,23 +576,65 @@ def matchcontacts():
                 contacts_in_history_report = contacts_in_history_report[contacts_in_history_report['_merge'] == 'both']
                 contacts_in_history_report.drop(labels='_merge', axis=1, inplace=True)
 
-                contacts_in_history_report = contacts_in_history_report[((contacts_in_history_report['NewValue'] == '000000000') & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['OldValue']))) | (contacts_in_history_report['District Id'].ne(contacts_in_history_report['NewValue'])) | ((contacts_in_history_report['NewValue'] == '000000000') & (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['OldValue']))) | (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['NewValue']))]
-                
-                contacts_with_old_account_id = district.queryContactHistoryAccountId()
+                contacts_in_history_report.to_csv(f'contacts_in_history_reportBEFORE CHECK.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
-                contacts_in_history_report = contacts_in_history_report.merge(contacts_with_old_account_id, on =['ContactId'],how='outer', indicator=True)
-                contacts_in_history_report = contacts_in_history_report[contacts_in_history_report['_merge'] == 'both']
+                contacts_in_history_report = contacts_in_history_report[((contacts_in_history_report['NewValue'].eq('00000000')) & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['OldValue']) & contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['OldValue']) )) | ((contacts_in_history_report['NewValue'].ne('00000000')) & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['NewValue']) & contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['NewValue']) ))]
+                #  | (contacts_in_history_report['District Id'].ne(contacts_in_history_report['NewValue'])) | (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['NewValue']))]
+
+
+                # contacts_in_history_report = contacts_in_history_report[(contacts_in_history_report['NewValue'] == '000000000' & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['OldValue']) | contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['OldValue'])))]
+
+                contacts_in_history_report.to_csv(f'contacts_in_history_reportAFTER CHECK.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+
+                district_accounts = district.queryDistrictAccountsByState(state)
+                school_accounts = district.querySchoolAccountsByState(state)
+
+
+                match_school_contacts_with_salesforce_accounts = contacts_in_history_report.merge(school_accounts, on =['Nces School Id'],how='outer', indicator=True)
+                success_match_school_contacts_with_salesforce_accounts = match_school_contacts_with_salesforce_accounts[match_school_contacts_with_salesforce_accounts['_merge'] == 'both']
+                success_match_school_contacts_with_salesforce_accounts.drop(labels='_merge', axis=1, inplace=True)
+                # success_match_school_contacts_with_salesforce_accounts.to_csv(f'success_match_school_contacts_with_salesforce_accounts.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+
+
+                district_contacts_with_salesforce_accounts = match_school_contacts_with_salesforce_accounts[match_school_contacts_with_salesforce_accounts['_merge'] == 'left_only']
+                district_contacts_with_salesforce_accounts.drop(labels={'Id','Account Name_y','Type_y','_merge'}, axis=1,inplace=True)
+
+                match_district_contacts_with_salesforce_accounts = district_contacts_with_salesforce_accounts.merge(district_accounts, on =['District Id'],how='outer', indicator=True)
+                success_match_district_contacts_with_salesforce_accounts = match_district_contacts_with_salesforce_accounts[match_district_contacts_with_salesforce_accounts['_merge'] == 'both']
+                success_match_district_contacts_with_salesforce_accounts.drop(labels='_merge', axis=1, inplace=True)
+                # success_match_district_contacts_with_salesforce_accounts.to_csv(f'success_match_district_contacts_with_salesforce_accounts.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+
+
+                contacts_to_update_from_history_report = pd.concat([success_match_district_contacts_with_salesforce_accounts, success_match_school_contacts_with_salesforce_accounts], axis=0,ignore_index=False)    
+                
+                contacts_to_update_from_history_report['Account Type'] = np.where(contacts_to_update_from_history_report['Type'].notnull(),contacts_to_update_from_history_report['Type'],contacts_to_update_from_history_report['Type_y'])
+                contacts_to_update_from_history_report['Account Name'] = np.where(contacts_to_update_from_history_report['Account Name'].notnull(),contacts_to_update_from_history_report['Account Name'],contacts_to_update_from_history_report['Account Name_y'])
+                contacts_to_update_from_history_report['Name'] = np.where(contacts_to_update_from_history_report['Name_x'].notnull(),contacts_to_update_from_history_report['Name_x'],contacts_to_update_from_history_report['Name_y'])
+
+                
+
+                contacts_to_update_from_history_report = district.buildContactUpdate(contacts_to_update_from_history_report)
+
+                
+
+                account_types = ['Unqualified','Researching','Call Attempt 1','Call Attempt 2','Call Attempt 3','Call Attempt 4','Call Attempt 5','Call Attempt 6','Pool - Not Interested','Pool - Lack of Funding','Former Customer','Pool (Not Interested)','Pool (Lack of Funding)']
+                contacts_to_update_from_history_report = contacts_to_update_from_history_report[~contacts_to_update_from_history_report['Account Type'].isin(account_types)]
+                
+                # contacts_with_old_account_id = district.queryContactHistoryAccountId()
+
+                # contacts_in_history_report = contacts_in_history_report.merge(contacts_with_old_account_id, on =['ContactId'],how='outer', indicator=True)
+                # contacts_in_history_report = contacts_in_history_report[contacts_in_history_report['_merge'] == 'both']
 
                 # contacts_to_import_df = pd.concat([contacts_to_import_df, contacts_in_history_report], axis=0,ignore_index=False)
                 contacts_to_import_df.rename(columns={'Sort_x': 'Sort', 'Source_x': 'Source'}, inplace=True)
                 contacts_to_import_df = district.buildSchoolContactSchema(contacts_to_import_df)
 
-                contacts_in_history_report = district.buildContactUpdate(contacts_in_history_report)
+                # contacts_in_history_report = district.buildContactUpdate(contacts_in_history_report)
                 
 
                 # if not contacts_in_history_report_with_different_nces_id.empty:
-
-                contacts_in_history_report.to_csv(f'Contacts to Update From Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+                if not contacts_to_update_from_history_report.empty:
+                    contacts_to_update_from_history_report.to_csv(f'Contacts to Update From Contact History Report{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             
 
     district_accounts_by_state = district.queryDistrictAccountsByState(state)
@@ -613,6 +655,8 @@ def matchcontacts():
     
 
     school_contacts_without_salesforce_account = school_contact_account_merge[school_contact_account_merge['_merge'] == 'left_only']
+    # school_contacts_with_existing_salesforce_account.to_csv(f'school_contacts_with_existing_salesforce_account{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+    # school_contacts_without_salesforce_account.to_csv(f'school_contacts_without_salesforce_account{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     if not school_contacts_without_salesforce_account.empty:
         # school_contacts_without_salesforce_account.to_csv(f'school_contacts_without_salesforce_account{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         # school_contacts_without_salesforce_account.drop(labels={'_merge','Id_y','Account Name_y','Type_y', 'Source_y', 'Sort_y','Name'}, axis=1,inplace=True)
@@ -650,17 +694,30 @@ def matchcontacts():
         if not contacts_without_existing_salesforce_account.empty:
             contacts_without_existing_salesforce_account.to_csv(f'{state} - Contacts with No Salesforce Account{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     else:
-        # school_contacts_with_existing_salesforce_account.to_csv(f'school_contacts_with_existing_salesforce_account{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
-        school_contacts_with_existing_salesforce_account = district.populateContactDefaultValues(school_contacts_with_existing_salesforce_account)
-        school_contacts_with_existing_salesforce_account['AccountId'] = school_contacts_with_existing_salesforce_account['Id']
-        school_contacts_with_existing_salesforce_account.rename(columns={'Id': 'AccountId'}, inplace=True)
-        # school_contacts_with_existing_salesforce_account.drop(labels={'Id_y','Id_x'}, axis=1,inplace=True)
-        # school_contacts_with_existing_salesforce_account['Account Name'] = np.where(~school_contacts_with_existing_salesforce_account['Account Name_y'].isnull(),school_contacts_with_existing_salesforce_account['Account Name_y'],school_contacts_with_existing_salesforce_account['Account Name_x'])
-        # school_contacts_with_existing_salesforce_account.drop(labels={'Account Name_y','Account Name_x'}, axis=1,inplace=True)
-        # school_contacts_with_existing_salesforce_account['Type'] = np.where(~school_contacts_with_existing_salesforce_account['Type_y'].isnull(),school_contacts_with_existing_salesforce_account['Type_y'],school_contacts_with_existing_salesforce_account['Type_x'])
-        # school_contacts_with_existing_salesforce_account.drop(labels={'Type_y','Type_x'}, axis=1,inplace=True)
-        # school_contacts_with_existing_salesforce_account.drop(labels={'DistrictId','SchoolId','Name', 'Source_y', 'Sort_y'}, axis=1,inplace=True)
-        school_contacts_with_existing_salesforce_account.to_csv(f'{state} - Contacts To Upload{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+        if 'Id_y' in school_contacts_with_existing_salesforce_account.columns:
+            # school_contacts_with_existing_salesforce_account.to_csv(f'school_contacts_with_existing_salesforce_account{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+            school_contacts_with_existing_salesforce_account = district.populateContactDefaultValues(school_contacts_with_existing_salesforce_account)
+            # school_contacts_with_existing_salesforce_account['AccountId'] = school_contacts_with_existing_salesforce_account['Id']
+
+            school_contacts_with_existing_salesforce_account['AccountId'] = np.where(~school_contacts_with_existing_salesforce_account['Id_y'].isnull(),school_contacts_with_existing_salesforce_account['Id_y'],school_contacts_with_existing_salesforce_account['Id_x'])
+            school_contacts_with_existing_salesforce_account.drop(labels={'Id_y','Id_x'}, axis=1,inplace=True)
+            
+            school_contacts_with_existing_salesforce_account['Account Name'] = np.where(~school_contacts_with_existing_salesforce_account['Account Name_y'].isnull(),school_contacts_with_existing_salesforce_account['Account Name_y'],school_contacts_with_existing_salesforce_account['Account Name_x'])
+            school_contacts_with_existing_salesforce_account.drop(labels={'Account Name_y','Account Name_x'}, axis=1,inplace=True)
+
+            school_contacts_with_existing_salesforce_account['Account Type'] = np.where(~school_contacts_with_existing_salesforce_account['Type_y'].isnull(),school_contacts_with_existing_salesforce_account['Type_y'],school_contacts_with_existing_salesforce_account['Type_x'])
+            school_contacts_with_existing_salesforce_account.drop(labels={'Type_y','Type_x'}, axis=1,inplace=True)
+
+            # school_contacts_with_existing_salesforce_account.drop(labels={'Id_y','Id_x'}, axis=1,inplace=True)
+            # school_contacts_with_existing_salesforce_account['Account Name'] = np.where(~school_contacts_with_existing_salesforce_account['Account Name_y'].isnull(),school_contacts_with_existing_salesforce_account['Account Name_y'],school_contacts_with_existing_salesforce_account['Account Name_x'])
+            # school_contacts_with_existing_salesforce_account.drop(labels={'Account Name_y','Account Name_x'}, axis=1,inplace=True)
+            # school_contacts_with_existing_salesforce_account['Type'] = np.where(~school_contacts_with_existing_salesforce_account['Type_y'].isnull(),school_contacts_with_existing_salesforce_account['Type_y'],school_contacts_with_existing_salesforce_account['Type_x'])
+            # school_contacts_with_existing_salesforce_account.drop(labels={'Type_y','Type_x'}, axis=1,inplace=True)
+            # school_contacts_with_existing_salesforce_account.drop(labels={'DistrictId','SchoolId','Name', 'Source_y', 'Sort_y'}, axis=1,inplace=True)
+            school_contacts_with_existing_salesforce_account.to_csv(f'{state} - Contacts To Upload{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+        else:
+            school_contacts_with_existing_salesforce_account = district.populateContactDefaultValues(school_contacts_with_existing_salesforce_account)
+            school_contacts_with_existing_salesforce_account.to_csv(f'{state} - Contacts To Upload{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
 
 
