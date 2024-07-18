@@ -433,7 +433,7 @@ class DataHelper:
     
     def queryAllContactsByState(self,state):
         session = SalesforceConnection(username, password, security_token)
-        response = session.connect().query_all("SELECT Id, Name, Email, AccountId, Account.Id,Account.Type, Account.Name, Account.NCES_District_ID__c, Account.NCES_School_ID__c FROM Contact WHERE (MailingState = " + "'" + state + "' OR Account.BillingState = " + "'" + state + "') AND AccountId != null")
+        response = session.connect().query_all("SELECT Id, Name, Email, Dont_Edit__c, AccountId, Account.Id,Account.Type, Account.Name, Account.NCES_District_ID__c, Account.NCES_School_ID__c FROM Contact WHERE (MailingState = " + "'" + state + "' OR Account.BillingState = " + "'" + state + "') AND AccountId != null")
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df.rename(columns={'Email': 'Email Address'}, inplace=True)
@@ -549,7 +549,7 @@ class DataHelper:
     
     def queryDistrictAccountsByState(self, state):
         session = SalesforceConnection(username, password, security_token)
-        response = session.connect().query_all("SELECT Id, Name, NCES_District_ID__c, Type FROM Account WHERE BillingState = '" + state +"' AND District_or_School_Record__c = 'District' ")
+        response = session.connect().query_all("SELECT Id, Name, NCES_District_ID__c, Type, Dont_Edit__c FROM Account WHERE BillingState = '" + state +"' AND District_or_School_Record__c = 'District' ")
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df.rename(columns={'NCES_District_ID__c': 'District Id', 'Name':'Account Name'}, inplace=True)
@@ -559,7 +559,7 @@ class DataHelper:
         
     def querySchoolAccountsByState(self, state):
         session = SalesforceConnection(username, password, security_token)
-        response = session.connect().query_all("SELECT Id, Name, NCES_School_ID__c, Type FROM Account WHERE BillingState = '" + state +"' AND District_or_School_Record__c = 'School' ")
+        response = session.connect().query_all("SELECT Id, Name, NCES_School_ID__c, Type, Dont_Edit__c FROM Account WHERE BillingState = '" + state +"' AND District_or_School_Record__c = 'School' ")
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df.rename(columns={'Name':'Account Name', 'NCES_School_ID__c':'Nces School Id'}, inplace=True)

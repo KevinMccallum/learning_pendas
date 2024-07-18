@@ -43,9 +43,9 @@ def success_table():
     # response = request.form['file']
     school = DataHelper()
     salesforce_session_connection = SalesforceConnection(username, password, security_token)
-    # response = salesforce_session_connection.connect().query_all("SELECT Id, Name, Email, AccountId FROM Contact WHERE (MailingState = 'FL' OR Account.BillingState = 'FL') AND AccountId = null")
-    response = school.queryContactHistoryAccountId()
-    df = pd.DataFrame(response)#.drop(labels='attributes', axis=1)
+    response = salesforce_session_connection.connect().query_all("SELECT Id, Name, Email, AccountId, Dont_Edit__c FROM Contact WHERE (MailingState = 'FL' OR Account.BillingState = 'FL')")
+    # response = school.queryContactHistoryAccountId()
+    df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
     # contact_df = df['Contact'].apply(lambda x:x['Contact'])
     # contact_df = pd.DataFrame(df['Contact'])
     # account_df = pd.DataFrame(df['Account'])
@@ -210,9 +210,11 @@ def dedupek12():
         district_both = merged_district_accounts_with_salesforce_data[merged_district_accounts_with_salesforce_data['_merge'] == 'both']
         district_right = merged_district_accounts_with_salesforce_data[merged_district_accounts_with_salesforce_data['_merge'] == 'right_only']
         district_accounts_not_in_salesforce.drop(labels={'Id', 'Account Name','Type','_merge'}, axis=1, inplace=True)
+        district_accounts_to_upsert = pd.concat([district_accounts_not_in_salesforce, district_both], axis=0,ignore_index=False)
+        district_accounts_to_upsert = district_accounts_to_upsert[district_accounts_to_upsert['Dont_Edit__c'] == False]
 
-        district_accounts_not_in_salesforce.to_csv(f'{state} - District Accounts To Import{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
-        # district_both.to_csv(f'{state} - district_both{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+        district_accounts_not_in_salesforce.to_csv(f'{state} - District Accounts Not In Salesforce{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+        district_accounts_to_upsert.to_csv(f'{state} - District Accounts To Upsert{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         # district_right.to_csv(f'{state} - district_right{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     
 
@@ -438,13 +440,21 @@ def createpublicschools():
     if not school_accounts_by_state.empty:
         school_accounts_by_state.to_csv(f'Public Schools from Salesforce - {today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         school_accounts_by_state.drop(labels={'Account Name'}, axis=1, inplace=True)
+
         merged_school_accounts_with_salesforce_data = schooldata.merge(school_accounts_by_state, on =['Nces School Id'],how='outer', indicator=True)
+
         school_accounts_not_in_salesforce = merged_school_accounts_with_salesforce_data[merged_school_accounts_with_salesforce_data['_merge'] == 'left_only']
         school_accounts_not_in_salesforce.drop(labels={'_merge','Id','Type'}, axis=1, inplace=True)
         school_accounts_not_in_salesforce.reset_index(inplace=True)
+
+        school_accounts_to_upsert = merged_school_accounts_with_salesforce_data[merged_school_accounts_with_salesforce_data['_merge'] == 'both']
+        school_accounts_to_upsert.drop(labels={'_merge','Type'}, axis=1, inplace=True)
+        school_accounts_to_upsert.reset_index(inplace=True)
+        # school_accounts_to_upsert.to_csv(f'school_accounts_to_upsert.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     
 
         dc = district.queryDistrictAccountsByState(state)
+        dc.drop(labels={'Dont_Edit__c'}, axis=1, inplace=True)
         if not dc.empty:
             dc.drop(labels={'Account Name', 'Type'}, axis=1, inplace=True)
 
@@ -464,15 +474,18 @@ def createpublicschools():
 
 
         # districtcontactdata = dc.merge(districtcontactdata, on =['District Id'],how='right')
+             
             school_accounts_with_salesforce_account.drop(labels={'_merge', 'Temporary Name', 'index', 'level_0'}, axis=1, inplace=True)
+            school_accounts_to_upsert_concatenated = pd.concat([school_accounts_to_upsert, school_accounts_with_salesforce_account], axis=0,ignore_index=False)   
             school_accounts_with_salesforce_account.to_csv(f'Public Schools to Import{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+            school_accounts_to_upsert_concatenated.to_csv(f'Public Schools to Upsert{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             session['schooldata'] = []
             return render_template("matchcontacts.html")
         # districtcontactdata.to_csv(f'district_contacts_df{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     else:
         dc = district.queryDistrictAccountsByState(state)
         if not dc.empty:
-            dc.drop(labels={'Account Name', 'Type'}, axis=1, inplace=True)
+            dc.drop(labels={'Account Name', 'Type','Dont_Edit__c'}, axis=1, inplace=True)
 
             school_accounts_with_salesforce_account_merge = schooldata.merge(dc, on =['District Id'],how='outer', indicator=True)
 
@@ -542,7 +555,7 @@ def matchcontacts():
         # contacts_for_contact_history.to_csv(f'contacts_FOR_contact_history.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         
         # contacts_for_contact_history = contacts_for_contact_history[(contacts_for_contact_history['Nces School Id'].isnull() & contacts_for_contact_history['District Id'].ne(contacts_for_contact_history['DistrictId']) & ~contacts_for_contact_history['DistrictId'].isnull()) | (contacts_for_contact_history['District Id'].isnull() & contacts_for_contact_history['Nces School Id'].ne(contacts_for_contact_history['SchoolId']) & ~contacts_for_contact_history['SchoolId'].isnull())]
-        contacts_for_contact_history = contacts_for_contact_history[(contacts_for_contact_history['Source_x'].eq('Public File') | contacts_for_contact_history['Source_x'].eq('Personnel File')) & contacts_for_contact_history['Nces School Id'].ne(contacts_for_contact_history['SchoolId']) | (contacts_for_contact_history['Source_x'].eq('District File') | contacts_for_contact_history['Source_x'].eq('Superintendent File')) & contacts_for_contact_history['District Id'].ne(contacts_for_contact_history['DistrictId'])]
+        contacts_for_contact_history = contacts_for_contact_history[((contacts_for_contact_history['Source_x'].eq('Public File') | contacts_for_contact_history['Source_x'].eq('Personnel File')) & contacts_for_contact_history['Nces School Id'].ne(contacts_for_contact_history['SchoolId']) & contacts_for_contact_history['Dont_Edit__c'].eq(False)) | ((contacts_for_contact_history['Source_x'].eq('District File') | contacts_for_contact_history['Source_x'].eq('Superintendent File')) & contacts_for_contact_history['District Id'].ne(contacts_for_contact_history['DistrictId']) & contacts_for_contact_history['Dont_Edit__c'].eq(False))]
         # contacts_for_contact_history.to_csv(f'contacts_FOR_contact_historyV2-1.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         contacts_for_contact_history.drop(labels='_merge', axis=1, inplace=True)
 
@@ -576,7 +589,7 @@ def matchcontacts():
                 contacts_in_history_report = contacts_in_history_report[contacts_in_history_report['_merge'] == 'both']
                 contacts_in_history_report.drop(labels='_merge', axis=1, inplace=True)
 
-                contacts_in_history_report.to_csv(f'contacts_in_history_reportBEFORE CHECK.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+                # contacts_in_history_report.to_csv(f'contacts_in_history_reportBEFORE CHECK.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
                 contacts_in_history_report = contacts_in_history_report[((contacts_in_history_report['NewValue'].eq('00000000')) & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['OldValue']) & contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['OldValue']) )) | ((contacts_in_history_report['NewValue'].ne('00000000')) & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['NewValue']) & contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['NewValue']) ))]
                 #  | (contacts_in_history_report['District Id'].ne(contacts_in_history_report['NewValue'])) | (contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['NewValue']))]
@@ -584,7 +597,7 @@ def matchcontacts():
 
                 # contacts_in_history_report = contacts_in_history_report[(contacts_in_history_report['NewValue'] == '000000000' & (contacts_in_history_report['District Id'].ne(contacts_in_history_report['OldValue']) | contacts_in_history_report['Nces School Id'].ne(contacts_in_history_report['OldValue'])))]
 
-                contacts_in_history_report.to_csv(f'contacts_in_history_reportAFTER CHECK.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+                # contacts_in_history_report.to_csv(f'contacts_in_history_reportAFTER CHECK.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
                 district_accounts = district.queryDistrictAccountsByState(state)
                 school_accounts = district.querySchoolAccountsByState(state)
@@ -617,8 +630,8 @@ def matchcontacts():
 
                 
 
-                account_types = ['Unqualified','Researching','Call Attempt 1','Call Attempt 2','Call Attempt 3','Call Attempt 4','Call Attempt 5','Call Attempt 6','Pool - Not Interested','Pool - Lack of Funding','Former Customer','Pool (Not Interested)','Pool (Lack of Funding)']
-                contacts_to_update_from_history_report = contacts_to_update_from_history_report[~contacts_to_update_from_history_report['Account Type'].isin(account_types)]
+                # account_types = ['Unqualified','Researching','Call Attempt 1','Call Attempt 2','Call Attempt 3','Call Attempt 4','Call Attempt 5','Call Attempt 6','Pool - Not Interested','Pool - Lack of Funding','Former Customer','Pool (Not Interested)','Pool (Lack of Funding)']
+                # contacts_to_update_from_history_report = contacts_to_update_from_history_report[~contacts_to_update_from_history_report['Account Type'].isin(account_types)]
                 
                 # contacts_with_old_account_id = district.queryContactHistoryAccountId()
 
