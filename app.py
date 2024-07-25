@@ -444,7 +444,7 @@ def createpublicschools():
         merged_school_accounts_with_salesforce_data = schooldata.merge(school_accounts_by_state, on =['Nces School Id'],how='outer', indicator=True)
 
         school_accounts_not_in_salesforce = merged_school_accounts_with_salesforce_data[merged_school_accounts_with_salesforce_data['_merge'] == 'left_only']
-        school_accounts_not_in_salesforce.drop(labels={'_merge','Id','Type'}, axis=1, inplace=True)
+        school_accounts_not_in_salesforce.drop(labels={'_merge','Id','Type','ParentId'}, axis=1, inplace=True)
         school_accounts_not_in_salesforce.reset_index(inplace=True)
 
         school_accounts_to_upsert = merged_school_accounts_with_salesforce_data[merged_school_accounts_with_salesforce_data['_merge'] == 'both']
@@ -455,6 +455,7 @@ def createpublicschools():
 
         dc = district.queryDistrictAccountsByState(state)
         dc.drop(labels={'Dont_Edit__c'}, axis=1, inplace=True)
+        # dc.rename(columns={'Id':'ParentId'},inplace=True)
         if not dc.empty:
             dc.drop(labels={'Account Name', 'Type'}, axis=1, inplace=True)
 
@@ -469,7 +470,9 @@ def createpublicschools():
                 return render_template("reuploaddistrict.html")
 
             school_accounts_with_salesforce_account = school_accounts_with_salesforce_account_merge[school_accounts_with_salesforce_account_merge['_merge'] == 'both']
-            school_accounts_with_salesforce_account.rename(columns={'Id':'Parent Account ID'},inplace=True)
+            # school_accounts_with_salesforce_account.to_csv(f'school_accounts_with_salesforce_account.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+            school_accounts_with_salesforce_account.rename(columns={'Id':'ParentId'},inplace=True)
+            # school_accounts_with_salesforce_account.to_csv(f'school_accounts_with_salesforce_account_parent.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         # vlookup District Contacts with District Account with Salesforce Id's
 
 
@@ -477,6 +480,10 @@ def createpublicschools():
              
             school_accounts_with_salesforce_account.drop(labels={'_merge', 'Temporary Name', 'index', 'level_0'}, axis=1, inplace=True)
             school_accounts_to_upsert_concatenated = pd.concat([school_accounts_to_upsert, school_accounts_with_salesforce_account], axis=0,ignore_index=False)   
+            # school_accounts_to_upsert_concatenated.rename(columns={'Id':'Parent Account ID'},inplace=True)
+            # school_accounts_with_salesforce_account.rename(columns={'Id':'Parent Account ID'},inplace=True)
+            school_accounts_to_upsert_concatenated['Dont_Edit__c'] = np.where(school_accounts_to_upsert_concatenated['Dont_Edit__c'].isnull(),False,school_accounts_to_upsert_concatenated['Dont_Edit__c'])
+            school_accounts_to_upsert_concatenated = school_accounts_to_upsert_concatenated[school_accounts_to_upsert_concatenated['Dont_Edit__c'] == False]
             school_accounts_with_salesforce_account.to_csv(f'Public Schools to Import{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             school_accounts_to_upsert_concatenated.to_csv(f'Public Schools to Upsert{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             session['schooldata'] = []

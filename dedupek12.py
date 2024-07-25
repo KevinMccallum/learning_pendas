@@ -559,7 +559,7 @@ class DataHelper:
         
     def querySchoolAccountsByState(self, state):
         session = SalesforceConnection(username, password, security_token)
-        response = session.connect().query_all("SELECT Id, Name, NCES_School_ID__c, Type, Dont_Edit__c FROM Account WHERE BillingState = '" + state +"' AND District_or_School_Record__c = 'School' ")
+        response = session.connect().query_all("SELECT Id, Name, NCES_School_ID__c, Type, Dont_Edit__c,ParentId FROM Account WHERE BillingState = '" + state +"' AND District_or_School_Record__c = 'School' ")
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df.rename(columns={'Name':'Account Name', 'NCES_School_ID__c':'Nces School Id'}, inplace=True)
