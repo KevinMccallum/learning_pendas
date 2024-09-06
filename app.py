@@ -3,7 +3,7 @@ from flask_session import Session
 import pandas as pd
 import numpy as np
 import requests
-from simple_salesforce import Salesforce
+# from simple_salesforce import Salesforce
 from salesforcecallout import SalesforceConnection
 from credentials import username, password, security_token
 from dedupek12 import DataHelper
@@ -554,6 +554,8 @@ def matchcontacts():
     if not salesforce_all_contacts_by_state.empty:
 
         k12data_check_with_df_data = contacts_to_import_df.merge(salesforce_all_contacts_by_state, on =['Email Address'],how='outer', indicator=True)
+        # k12data_check_with_df_data.to_csv(f'k12data_check_with_df_data.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+
 
         #!!
         contacts_to_import_df = k12data_check_with_df_data[k12data_check_with_df_data['_merge'] == 'left_only']
@@ -570,7 +572,10 @@ def matchcontacts():
 
         if not contacts_for_contact_history.empty:
 
-            contacts_for_contact_history.rename(columns={'Id': 'ContactId'}, inplace=True)
+            if 'Id_x' and 'Id_y' in contacts_for_contact_history:
+                contacts_for_contact_history['ContactId'] = np.where(~contacts_for_contact_history['Id_y'].isnull(),contacts_for_contact_history['Id_y'],np.where(~contacts_for_contact_history['Id_x'].isnull(),contacts_for_contact_history['Id_x'],contacts_for_contact_history['Id_y']))
+                # contacts_for_contact_history['Name'] = np.where(~contacts_for_contact_history['Name_y'].isnull(),contacts_for_contact_history['Name_y'],np.where(~contacts_for_contact_history['Name_x'].isnull(),contacts_for_contact_history['Name_x'],contacts_for_contact_history['Name_y']))
+                # contacts_for_contact_history.rename(columns={'Id': 'ContactId'}, inplace=True)
             # contacts_for_contact_history.to_csv(f'contacts_for_contact_history.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             contact_history_report = district.queryContactHistory()
             if not contact_history_report.empty:

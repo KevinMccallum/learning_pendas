@@ -7,11 +7,10 @@ class SalesforceConnection:
         self.username = username
         self.password = password
         self.security_token = security_token
-        self.domain='test'
         
 
     def connect(self):
-        return Salesforce(username=self.username,password=self.password,security_token=self.security_token,domain = self.domain)
+        return Salesforce(username=self.username,password=self.password,security_token=self.security_token,organizationId='00D6g000008Lv63')
     
 
 # login = SalesforceConnection.connect()
