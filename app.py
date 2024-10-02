@@ -213,7 +213,9 @@ def dedupek12():
         district_accounts_to_upsert = pd.concat([district_accounts_not_in_salesforce, district_both], axis=0,ignore_index=False)
         district_accounts_to_upsert = district_accounts_to_upsert[district_accounts_to_upsert['Dont_Edit__c'] == False]
 
+        district_accounts_not_in_salesforce(subset="District Id", keep='first', inplace=True)
         district_accounts_not_in_salesforce.to_csv(f'{state} - District Accounts Not In Salesforce{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+        district_accounts_to_upsert(subset="District Id", keep='first', inplace=True)
         district_accounts_to_upsert.to_csv(f'{state} - District Accounts To Upsert{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         # district_right.to_csv(f'{state} - district_right{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     
