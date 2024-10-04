@@ -415,7 +415,7 @@ def createpublicschools():
     schooldata = session.get('schooldata')
     schooldata = pd.read_json(schooldata, dtype=False)
     schooldata["Data Source Import Date"] = pd.to_datetime(schooldata["Data Source Import Date"],dayfirst=True)
-    schooldata.to_csv(f'SCHOOL DATA{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+    # schooldata.to_csv(f'SCHOOL DATA{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
     state = session.get('state', None)
 
@@ -502,7 +502,7 @@ def createpublicschools():
             # school_accounts_with_salesforce_account.rename(columns={'Id':'Parent Account ID'},inplace=True)
             school_accounts_to_upsert_concatenated['Dont_Edit__c'] = np.where(school_accounts_to_upsert_concatenated['Dont_Edit__c'].isnull(),False,school_accounts_to_upsert_concatenated['Dont_Edit__c'])
             school_accounts_to_upsert_concatenated = school_accounts_to_upsert_concatenated[school_accounts_to_upsert_concatenated['Dont_Edit__c'] == False]
-            school_accounts_with_salesforce_account.to_csv(f'Public Schools to Import{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+            school_accounts_with_salesforce_account.to_csv(f'Public Schools to Insert{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             school_accounts_to_upsert_concatenated.to_csv(f'Public Schools to Upsert{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
             session['schooldata'] = []
             return render_template("matchcontacts.html")
