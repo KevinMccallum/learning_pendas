@@ -415,7 +415,7 @@ def createpublicschools():
     schooldata = session.get('schooldata')
     schooldata = pd.read_json(schooldata, dtype=False)
     schooldata["Data Source Import Date"] = pd.to_datetime(schooldata["Data Source Import Date"],dayfirst=True)
-    # schooldata.to_csv(f'SCHOOL DATA{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+    schooldata.to_csv(f'SCHOOL DATA{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
     state = session.get('state', None)
 
@@ -463,10 +463,14 @@ def createpublicschools():
 
         dc = district.queryDistrictAccountsByState(state)
         dc.drop(labels={'Dont_Edit__c'}, axis=1, inplace=True)
-        # dc.to_csv(f'DC   .csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+        
         # dc.rename(columns={'Id':'ParentId'},inplace=True)
         if not dc.empty:
             dc.drop(labels={'Account Name', 'Type'}, axis=1, inplace=True)
+            # dc.to_csv(f'DC.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+            # school_accounts_not_in_salesforce.to_csv(f'school_accounts_not_in_salesforce.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+            dc['District Id'] = dc['District Id'].astype('string')
+            school_accounts_not_in_salesforce['District Id'] = school_accounts_not_in_salesforce['District Id'].astype('string')
 
             school_accounts_with_salesforce_account_merge = school_accounts_not_in_salesforce.merge(dc, on =['District Id'],how='outer', indicator=True)
 

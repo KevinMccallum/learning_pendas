@@ -560,19 +560,20 @@ class DataHelper:
     
     def queryDistrictAccountsByState(self, state):
         session = SalesforceConnection(username, password, security_token)
-        response = session.connect().query_all("SELECT Id, Name, NCES_District_ID__c, Type, Dont_Edit__c FROM Account WHERE BillingState = '" + state +"' AND District_or_School_Record__c = 'District' ")
+        response = session.connect().query_all("SELECT Id, Name, NCES_District_ID__c, Type, Dont_Edit__c FROM Account WHERE BillingState = '" + state +"' AND RecordTypeId = '012Du0000004KMfIAM'")
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df.rename(columns={'NCES_District_ID__c': 'District Id', 'Name':'Account Name'}, inplace=True)
             df['District Id'] = np.trim_zeros(df['District Id'],'f')
             df['District Id'] = np.where(df['District Id'].str.startswith('0'), df['District Id'].str.lstrip('0'),df['District Id'])
+
             return df
         else:
             return pd.DataFrame()
         
     def querySchoolAccountsByState(self, state):
         session = SalesforceConnection(username, password, security_token)
-        response = session.connect().query_all("SELECT Id, Name, NCES_School_ID__c, Type, Dont_Edit__c,ParentId FROM Account WHERE BillingState = '" + state +"' AND District_or_School_Record__c = 'School' ")
+        response = session.connect().query_all("SELECT Id, Name, NCES_School_ID__c, Type, Dont_Edit__c,ParentId FROM Account WHERE BillingState = '" + state +"' AND RecordTypeId = '012Du0000004KMzIAM' ")
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df.rename(columns={'Name':'Account Name', 'NCES_School_ID__c':'Nces School Id'}, inplace=True)
