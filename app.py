@@ -109,7 +109,9 @@ def dedupek12():
 
     for file in os.listdir(response):
         dc = pd.read_excel(os.path.join(response,file),dtype={'Nces School Id': str, 'District Id': str, 'Grades Offered - Lowest': str})
-        print(response)
+        dc['District Id'] = np.trim_zeros(dc['District Id'],'f')
+        dc['District Id'] = np.where(dc['District Id'].str.startswith('0'), dc['District Id'].str.lstrip('0'),dc['District Id'])
+        # print(response)
         dc["Data Source Import Date"] = response.split(".xlsx")[0][-10:]
         if 'superintendents' in file and file.endswith('.xlsx'):
             dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)
@@ -190,6 +192,7 @@ def dedupek12():
     deduped_main_school_df = school.changeSchoolAccountNameForDuplicateNames(deduped_main_school_df)
     
     deduped_main_school_df.reset_index(inplace=True)
+    
     
     deduped_main_school_df.to_csv(f'{state} - school_df_organized{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
     deduped_main_district_df.to_csv(f'{state} - district_df_organized{today}.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
@@ -444,10 +447,13 @@ def createpublicschools():
         school_accounts_by_state.drop(labels={'Account Name'}, axis=1, inplace=True)
 
         merged_school_accounts_with_salesforce_data = schooldata.merge(school_accounts_by_state, on =['Nces School Id'],how='outer', indicator=True)
+        # merged_school_accounts_with_salesforce_data.to_csv(f'merged_school_accounts_with_salesforce_data.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
         school_accounts_not_in_salesforce = merged_school_accounts_with_salesforce_data[merged_school_accounts_with_salesforce_data['_merge'] == 'left_only']
         school_accounts_not_in_salesforce.drop(labels={'_merge','Id','Type','ParentId'}, axis=1, inplace=True)
         school_accounts_not_in_salesforce.reset_index(inplace=True)
+
+        # school_accounts_not_in_salesforce.to_csv(f'school_accounts_not_in_salesforce.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
         school_accounts_to_upsert = merged_school_accounts_with_salesforce_data[merged_school_accounts_with_salesforce_data['_merge'] == 'both']
         school_accounts_to_upsert.drop(labels={'_merge','Type'}, axis=1, inplace=True)
@@ -457,17 +463,23 @@ def createpublicschools():
 
         dc = district.queryDistrictAccountsByState(state)
         dc.drop(labels={'Dont_Edit__c'}, axis=1, inplace=True)
+        # dc.to_csv(f'DC   .csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
         # dc.rename(columns={'Id':'ParentId'},inplace=True)
         if not dc.empty:
             dc.drop(labels={'Account Name', 'Type'}, axis=1, inplace=True)
 
             school_accounts_with_salesforce_account_merge = school_accounts_not_in_salesforce.merge(dc, on =['District Id'],how='outer', indicator=True)
 
+            # school_accounts_with_salesforce_account_merge.to_csv(f'school_accounts_not_in_salesforce_AFTER_MERGE.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
+
             school_accounts_with_salesforce_account = school_accounts_with_salesforce_account_merge[school_accounts_with_salesforce_account_merge['_merge'] == 'left_only']
+
+            # school_accounts_with_salesforce_account_merge.to_csv(f'school_accounts_not_in_salesforce_LEFT_ONLY.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
 
             if not school_accounts_with_salesforce_account.empty:
                 school_accounts_with_salesforce_account = district.buildSchoolToDistrictSchema(school_accounts_with_salesforce_account)
                 school_accounts_with_salesforce_account = district.dedupeDistrictData(school_accounts_with_salesforce_account)
+                school_accounts_with_salesforce_account = district.populateSchoolAccountWithNoDistrictDefaultValues(school_accounts_with_salesforce_account)
                 school_accounts_with_salesforce_account.to_csv(f'School Accounts Without a District Id Account.csv', index=False, float_format='%.0f', date_format='%d/%m/%Y')
                 return render_template("reuploaddistrict.html")
 

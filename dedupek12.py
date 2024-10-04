@@ -84,6 +84,16 @@ class DataHelper:
         schema_to_return["Full District Name"] = np.where(schema_to_return["District Name"].notnull(), schema_to_return['District Name'].astype(str).str.title() + ' (' + schema_to_return['Location State'] + ')',schema_to_return['Full School Name'].astype(str).str.title() + ' (' + schema_to_return['Location State'] + ')')
         return schema_to_return
     
+    def populateSchoolAccountWithNoDistrictDefaultValues(self, dc):
+        accounts = pd.DataFrame(dc)
+        accounts["Data_Source__c"] = "K12 - Prospects"
+        accounts["Account Record Type"] = "012Du0000004KMfIAM"
+        accounts["Record Type"] = "District"
+        accounts["Account Type"] = "Unqualified"
+        accounts["Public or Private"] = "Public"
+        accounts["NCES_District_ID__c"] = accounts["District Id"]
+        return accounts
+    
     def populateDistrictDefaultValues(self, dc):
         accounts = pd.DataFrame(dc)
         accounts["Data_Source__c"] = "K12 - Prospects"
@@ -203,6 +213,7 @@ class DataHelper:
         pd.to_numeric(dc["Grades Offered - Highest"], errors='coerce')
         dc["Grades Offered - Highest"] = np.where(dc["Grades Offered - Highest"].astype(str) == '13','12',dc["Grades Offered - Highest"])
         # dc["Data Source Import Date"] = self.file.split(".xlsx")[0][-10:]
+        # dc['District Id'] = np.trim_zeros(dc['District Id'],'f')
 
 
         # dc["Data Source Import Date"] = pd.to_datetime(dc["Data Source Import Date"],dayfirst=True)
@@ -553,6 +564,8 @@ class DataHelper:
         if response['records']:
             df = pd.DataFrame(response['records']).drop(labels='attributes', axis=1)
             df.rename(columns={'NCES_District_ID__c': 'District Id', 'Name':'Account Name'}, inplace=True)
+            df['District Id'] = np.trim_zeros(df['District Id'],'f')
+            df['District Id'] = np.where(df['District Id'].str.startswith('0'), df['District Id'].str.lstrip('0'),df['District Id'])
             return df
         else:
             return pd.DataFrame()
